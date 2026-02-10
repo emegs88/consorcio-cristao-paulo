@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const memberSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').regex(/\d/, 'Senha deve conter pelo menos um número'),
   churchName: z.string().min(2, 'Nome da igreja é obrigatório'),
   city: z.string().min(2, 'Cidade é obrigatória'),
   whatsapp: z.string().min(10, 'WhatsApp inválido'),
@@ -17,7 +17,7 @@ export const memberSchema = z.object({
 export const churchSchema = z.object({
   name: z.string().min(3, 'Nome da igreja deve ter pelo menos 3 caracteres'),
   email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').regex(/\d/, 'Senha deve conter pelo menos um número'),
   pastorName: z.string().min(3, 'Nome do pastor é obrigatório'),
   cnpj: z.string().optional(),
   city: z.string().min(2, 'Cidade é obrigatória'),
@@ -32,9 +32,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Senha é obrigatória'),
 })
 
-// Schema de operação
+// Schema de operação (memberId é derivado da sessão no backend)
 export const operationSchema = z.object({
-  memberId: z.string(),
   type: z.string().default('consortium'),
   amount: z.number().positive('Valor deve ser positivo'),
   description: z.string().optional(),

@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession()
-    
-    if (!session || session.role !== 'ADMIN') {
+    const auth = await requireAuth(['ADMIN'])
+    if (!auth.success) return auth.response
+
+    const { id } = await params
+
+    const existing = await prisma.member.findUnique({ where: { id } })
+    if (!existing) {
       return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
+        { error: 'Membro não encontrado' },
+        { status: 404 }
       )
     }
 
-    const { id } = await params
-    const memberId = id
+    if (existing.approvalStatus !== 'PENDING') {
+      return NextResponse.json(
+        { error: `Membro já está com status: ${existing.approvalStatus}` },
+        { status: 400 }
+      )
+    }
 
     const member = await prisma.member.update({
-      where: { id: memberId },
-      data: {
-        approvalStatus: 'REJECTED',
-      },
+      where: { id },
+      data: { approvalStatus: 'REJECTED' },
     })
 
     return NextResponse.json({ success: true, member })

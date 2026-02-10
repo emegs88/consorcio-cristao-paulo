@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Users, Search, Check, X } from 'lucide-react'
-import Link from 'next/link'
+import { Search, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Member {
@@ -28,9 +26,7 @@ export default function AdminMembros() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  useEffect(() => {
-    loadMembers()
-  }, [])
+  useEffect(() => { loadMembers() }, [])
 
   const loadMembers = async () => {
     try {
@@ -39,7 +35,7 @@ export default function AdminMembros() {
         const data = await response.json()
         setMembers(data.members || [])
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao carregar membros')
     } finally {
       setLoading(false)
@@ -48,185 +44,111 @@ export default function AdminMembros() {
 
   const handleApprove = async (memberId: string) => {
     try {
-      const response = await fetch(`/api/admin/members/${memberId}/approve`, {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        toast.success('Membro aprovado com sucesso!')
-        loadMembers()
-        setDialogOpen(false)
-      } else {
-        toast.error('Erro ao aprovar membro')
-      }
-    } catch (error) {
-      toast.error('Erro ao aprovar membro')
-    }
+      const response = await fetch(`/api/admin/members/${memberId}/approve`, { method: 'POST' })
+      if (response.ok) { toast.success('Membro aprovado!'); loadMembers(); setDialogOpen(false) }
+      else toast.error('Erro ao aprovar membro')
+    } catch { toast.error('Erro ao aprovar membro') }
   }
 
   const handleReject = async (memberId: string) => {
     try {
-      const response = await fetch(`/api/admin/members/${memberId}/reject`, {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        toast.success('Membro rejeitado')
-        loadMembers()
-        setDialogOpen(false)
-      } else {
-        toast.error('Erro ao rejeitar membro')
-      }
-    } catch (error) {
-      toast.error('Erro ao rejeitar membro')
-    }
+      const response = await fetch(`/api/admin/members/${memberId}/reject`, { method: 'POST' })
+      if (response.ok) { toast.success('Membro rejeitado'); loadMembers(); setDialogOpen(false) }
+      else toast.error('Erro ao rejeitar membro')
+    } catch { toast.error('Erro ao rejeitar membro') }
   }
 
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(search.toLowerCase()) ||
-    member.email.toLowerCase().includes(search.toLowerCase()) ||
-    member.city.toLowerCase().includes(search.toLowerCase())
+  const filteredMembers = members.filter(m =>
+    m.name.toLowerCase().includes(search.toLowerCase()) ||
+    m.email.toLowerCase().includes(search.toLowerCase()) ||
+    m.city.toLowerCase().includes(search.toLowerCase())
   )
-
   const pendingMembers = filteredMembers.filter(m => m.approvalStatus === 'PENDING')
   const approvedMembers = filteredMembers.filter(m => m.approvalStatus === 'APPROVED')
 
   return (
-    <div className="min-h-screen premium-gradient">
-      <header className="border-b border-gold/20">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <Link href="/admin/dashboard" className="text-2xl font-bold text-gold">Prospere Aliança - Admin</Link>
-          <nav className="flex gap-4">
-            <Link href="/admin/dashboard" className="text-white hover:text-gold">Dashboard</Link>
-            <Link href="/admin/igrejas" className="text-white hover:text-gold">Igrejas</Link>
-            <Link href="/admin/membros" className="text-white hover:text-gold font-bold">Membros</Link>
-            <Button variant="outline" className="border-gold text-gold" onClick={async () => {
-              await fetch('/api/logout', { method: 'POST' })
-              window.location.href = '/login'
-            }}>Sair</Button>
-          </nav>
+    <main className="container mx-auto px-4 py-8 relative z-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">Gerenciar Membros</h1>
+          <p className="text-gray-400">Aprovar ou rejeitar cadastros de membros</p>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Gerenciar Membros</h1>
-          <div className="flex gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar membros..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 w-64 bg-black/40 border-gold/30 text-white"
-              />
-            </div>
-          </div>
+        <div className="relative w-full md:w-auto">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input placeholder="Buscar membros..." value={search} onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 w-full md:w-72 bg-white/5 border-white/10 text-white placeholder:text-gray-500 rounded-xl h-11 focus:border-gold/50" />
         </div>
+      </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-20 w-full" />
-            ))}
+      {loading ? (
+        <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl bg-white/5" />)}</div>
+      ) : (
+        <>
+          <div className="glass-card rounded-2xl p-6 mb-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="bg-amber-500/10 text-amber-400 text-xs px-2 py-0.5 rounded-full">{pendingMembers.length}</span>
+              Pendentes de Aprovacao
+            </h2>
+            {pendingMembers.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum membro pendente</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingMembers.map((member) => (
+                  <div key={member.id} className="flex flex-col md:flex-row justify-between md:items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-colors">
+                    <div>
+                      <h3 className="text-white font-medium">{member.name}</h3>
+                      <p className="text-gray-500 text-sm">{member.email}</p>
+                      <p className="text-gray-500 text-sm">{member.city} &bull; {member.churchName || 'Sem igreja'}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 rounded-lg"
+                        onClick={() => { setSelectedMember(member); setDialogOpen(true) }}>
+                        <Check className="h-4 w-4 mr-1" /> Aprovar
+                      </Button>
+                      <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleReject(member.id)}>
+                        <X className="h-4 w-4 mr-1" /> Rejeitar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            <Card className="bg-black/60 border-gold/50 mb-6">
-              <CardHeader>
-                <CardTitle className="text-gold">Pendentes de Aprovação ({pendingMembers.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pendingMembers.length === 0 ? (
-                  <p className="text-gray-400">Nenhum membro pendente</p>
-                ) : (
-                  <div className="space-y-4">
-                    {pendingMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="p-4 bg-black/40 rounded-lg border border-gold/30 flex justify-between items-center"
-                      >
-                        <div>
-                          <h3 className="text-white font-semibold">{member.name}</h3>
-                          <p className="text-gray-400 text-sm">{member.email}</p>
-                          <p className="text-gray-400 text-sm">{member.city} • {member.churchName || 'Sem igreja'}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => {
-                              setSelectedMember(member)
-                              setDialogOpen(true)
-                            }}
-                          >
-                            <Check className="h-4 w-4 mr-2" />
-                            Aprovar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleReject(member.id)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Rejeitar
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
-            <Card className="bg-black/60 border-gold/50">
-              <CardHeader>
-                <CardTitle className="text-gold">Membros Aprovados ({approvedMembers.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {approvedMembers.length === 0 ? (
-                  <p className="text-gray-400">Nenhum membro aprovado</p>
-                ) : (
-                  <div className="space-y-4">
-                    {approvedMembers.map((member) => (
-                      <div
-                        key={member.id}
-                        className="p-4 bg-black/40 rounded-lg border border-gold/30"
-                      >
-                        <h3 className="text-white font-semibold">{member.name}</h3>
-                        <p className="text-gray-400 text-sm">{member.email}</p>
-                        <p className="text-gray-400 text-sm">{member.city} • {member.churchName || 'Sem igreja'}</p>
-                      </div>
-                    ))}
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-0.5 rounded-full">{approvedMembers.length}</span>
+              Membros Aprovados
+            </h2>
+            {approvedMembers.length === 0 ? (
+              <p className="text-gray-500 text-sm">Nenhum membro aprovado</p>
+            ) : (
+              <div className="space-y-3">
+                {approvedMembers.map((member) => (
+                  <div key={member.id} className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                    <h3 className="text-white font-medium">{member.name}</h3>
+                    <p className="text-gray-500 text-sm">{member.email}</p>
+                    <p className="text-gray-500 text-sm">{member.city} &bull; {member.churchName || 'Sem igreja'}</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="bg-black/95 border-gold/50">
-            <DialogHeader>
-              <DialogTitle className="text-gold">Confirmar Aprovação</DialogTitle>
-              <DialogDescription className="text-gray-300">
-                Deseja aprovar o membro {selectedMember?.name}?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                className="bg-gold text-black hover:bg-gold/90"
-                onClick={() => selectedMember && handleApprove(selectedMember.id)}
-              >
-                Confirmar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </main>
-    </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-[#0c0c1d] border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Confirmar Aprovacao</DialogTitle>
+            <DialogDescription className="text-gray-400">Deseja aprovar o membro {selectedMember?.name}?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/10 text-white" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button className="bg-gold text-black hover:bg-gold/90" onClick={() => selectedMember && handleApprove(selectedMember.id)}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
   )
 }

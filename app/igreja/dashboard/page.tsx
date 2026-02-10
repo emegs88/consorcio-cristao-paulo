@@ -1,145 +1,110 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Users, TrendingUp, Heart, FileText } from 'lucide-react'
+import { Users, TrendingUp, Heart, FileText, DollarSign } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
+
+interface ChurchData {
+  name: string
+  city: string
+  pastorName: string
+  totalMembers: number
+  totalVolume: number
+  totalSupport: number
+  pendingSupport: number
+  monthlySupport: number
+}
 
 export default function IgrejaDashboard() {
-  // Dados simulados - em produção viriam da API
-  const dados = {
-    name: 'Igreja Exemplo',
-    totalMembers: 45,
-    totalVolume: 2500000,
-    totalSupport: 50000,
-    monthlySupport: 4500,
-    pendingSupport: 1200,
+  const [data, setData] = useState<ChurchData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/church/dashboard')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(setData)
+      .catch(() => toast.error('Erro ao carregar dados'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <main className="container mx-auto px-4 py-8">
+        <Skeleton className="h-12 w-64 mb-8 bg-white/5" />
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-36 rounded-2xl bg-white/5" />)}
+        </div>
+      </main>
+    )
   }
 
   return (
-    <div className="min-h-screen premium-gradient">
-      <header className="border-b border-gold/20">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div className="text-2xl font-bold text-gold">Prospere Aliança</div>
-          <nav className="flex gap-4">
-            <Link href="/igreja/dashboard" className="text-white hover:text-gold">Dashboard</Link>
-            <Link href="/igreja/relatorios" className="text-white hover:text-gold">Relatórios</Link>
-            <Button variant="outline" className="border-gold text-gold" onClick={async () => {
-              await fetch('/api/logout', { method: 'POST' })
-              window.location.href = '/login'
-            }}>Sair</Button>
-          </nav>
-        </div>
-      </header>
+    <main className="container mx-auto px-4 py-8 relative z-10">
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+          <span className="gold-gradient-text">{data?.name}</span>
+        </h1>
+        <p className="text-gray-400">{data?.city} &bull; Pastor {data?.pastorName}</p>
+      </div>
 
-      <main className="container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-white mb-2">{dados.name}</h1>
-        <p className="text-gray-300 mb-8">Painel de Apoio Institucional</p>
-
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center text-lg">
-                <Users className="mr-2 h-5 w-5" />
-                Membros
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{dados.totalMembers}</div>
-              <p className="text-gray-400 text-sm">Vinculados</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center text-lg">
-                <TrendingUp className="mr-2 h-5 w-5" />
-                Volume Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                R$ {(dados.totalVolume / 1000).toFixed(0)}k
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { icon: Users, value: data?.totalMembers || 0, label: 'Membros vinculados', tag: 'Total' },
+          { icon: TrendingUp, value: `R$ ${((data?.totalVolume || 0) / 1000).toFixed(0)}k`, label: 'Gerado', tag: 'Volume' },
+          { icon: Heart, value: `R$ ${(data?.totalSupport || 0).toLocaleString('pt-BR')}`, label: 'Acumulado', tag: 'Apoio', gold: true },
+          { icon: DollarSign, value: `R$ ${(data?.pendingSupport || 0).toLocaleString('pt-BR')}`, label: 'A receber', tag: 'Pendente' },
+        ].map((stat) => (
+          <div key={stat.tag} className="stat-card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                <stat.icon className="h-5 w-5 text-gold" />
               </div>
-              <p className="text-gray-400 text-sm">Gerado</p>
-            </CardContent>
-          </Card>
+              <span className="text-xs text-gray-500 uppercase tracking-wider">{stat.tag}</span>
+            </div>
+            <div className={`text-2xl md:text-3xl font-bold mb-1 ${stat.gold ? 'gold-gradient-text' : 'text-white'}`}>{stat.value}</div>
+            <p className="text-gray-400 text-sm">{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center text-lg">
-                <Heart className="mr-2 h-5 w-5" />
-                Apoio Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gold">
-                R$ {(dados.totalSupport / 1000).toFixed(0)}k
-              </div>
-              <p className="text-gray-400 text-sm">Acumulado</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center text-lg">
-                <FileText className="mr-2 h-5 w-5" />
-                Pendente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                R$ {dados.pendingSupport.toLocaleString('pt-BR')}
-              </div>
-              <p className="text-gray-400 text-sm">Este mês</p>
-            </CardContent>
-          </Card>
+      <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Resumo Mensal</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.03]">
+              <span className="text-gray-400 text-sm">Apoio deste mes</span>
+              <span className="text-gold font-semibold text-lg">R$ {(data?.monthlySupport || 0).toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.03]">
+              <span className="text-gray-400 text-sm">Membros ativos</span>
+              <span className="text-white font-semibold text-lg">{data?.totalMembers || 0}</span>
+            </div>
+            <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.03]">
+              <span className="text-gray-400 text-sm">Percentual de apoio</span>
+              <span className="text-gold font-semibold text-lg">2%</span>
+            </div>
+          </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="bg-black/60 border-gold/50">
-            <CardHeader>
-              <CardTitle className="text-gold">Resumo Mensal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-gray-400 text-sm">Apoio deste mês</p>
-                  <p className="text-2xl font-bold text-gold">
-                    R$ {dados.monthlySupport.toLocaleString('pt-BR')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Membros ativos</p>
-                  <p className="text-xl font-semibold text-white">{dados.totalMembers}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/60 border-gold/50">
-            <CardHeader>
-              <CardTitle className="text-gold">Sobre o Apoio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-300 text-sm mb-4">
-                O apoio institucional é calculado automaticamente sobre as operações realizadas pelos membros vinculados à sua igreja.
-              </p>
-              <p className="text-gray-400 text-xs">
-                Este valor é classificado como oferta voluntária de apoio ao ministério, não como comissão comercial.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-6">
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Sobre o Apoio</h3>
+          <p className="text-gray-400 text-sm mb-4 leading-relaxed">
+            O apoio institucional e calculado automaticamente sobre as operacoes realizadas pelos membros vinculados à sua igreja.
+          </p>
+          <p className="text-gray-500 text-xs mb-6 leading-relaxed">
+            Este valor e classificado como oferta voluntaria de apoio ao ministerio, nao como comissao comercial.
+          </p>
           <Link href="/igreja/relatorios">
-            <Button className="bg-gold text-black hover:bg-gold/90" size="lg">
-              Ver Relatórios Detalhados
+            <Button className="w-full bg-gold text-black hover:bg-gold/90 rounded-xl h-12 font-semibold" size="lg">
+              <FileText className="mr-2 h-4 w-4" />
+              Ver Relatorios Detalhados
             </Button>
           </Link>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   )
 }

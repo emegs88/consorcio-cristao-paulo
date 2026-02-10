@@ -1,101 +1,95 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { FileText } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { CreditCard, CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
+
+interface Operation {
+  id: string
+  type: string
+  amount: number
+  status: string
+  description?: string
+  createdAt: string
+}
 
 export default function CartasDisponiveis() {
-  // Dados simulados - em produção viriam da API
-  const cartas = [
-    {
-      id: 1,
-      tipo: 'Imóvel',
-      valor: 200000,
-      grupo: '12345',
-      parcela: 1500,
-      disponivel: true,
-    },
-    {
-      id: 2,
-      tipo: 'Veículo',
-      valor: 80000,
-      grupo: '67890',
-      parcela: 1200,
-      disponivel: true,
-    },
-    {
-      id: 3,
-      tipo: 'Imóvel',
-      valor: 350000,
-      grupo: '11111',
-      parcela: 2800,
-      disponivel: false,
-    },
-  ]
+  const [operations, setOperations] = useState<Operation[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/member/operations?limit=50')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const approved = (data.operations || []).filter((op: Operation) => op.status === 'approved')
+        setOperations(approved)
+      })
+      .catch(() => toast.error('Erro ao carregar cartas'))
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
-    <div className="min-h-screen premium-gradient py-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <Link href="/membro/dashboard" className="inline-flex items-center text-gold hover:text-gold/80 mb-6">
-          ← Voltar
-        </Link>
+    <main className="container mx-auto px-4 py-8 relative z-10 max-w-5xl">
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+          Cartas <span className="gold-gradient-text">Disponiveis</span>
+        </h1>
+        <p className="text-gray-400">Suas operacoes aprovadas que funcionam como cartas de credito</p>
+      </div>
 
-        <Card className="bg-black/60 border-gold/50 mb-6">
-          <CardHeader>
-            <CardTitle className="text-3xl text-gold flex items-center">
-              <FileText className="mr-3 h-8 w-8" />
-              Cartas Disponíveis
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Consulte as cartas de crédito disponíveis para contemplação
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cartas.map((carta) => (
-            <Card
-              key={carta.id}
-              className={`bg-black/40 border-gold/30 ${
-                !carta.disponivel ? 'opacity-60' : ''
-              }`}
-            >
-              <CardHeader>
-                <CardTitle className="text-gold">{carta.tipo}</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Grupo: {carta.grupo}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-400 text-sm">Valor</p>
-                    <p className="text-2xl font-bold text-white">
-                      R$ {carta.valor.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Parcela</p>
-                    <p className="text-xl font-semibold text-white">
-                      R$ {carta.parcela.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                  {carta.disponivel ? (
-                    <Button className="w-full bg-gold text-black hover:bg-gold/90">
-                      Solicitar Contemplação
-                    </Button>
-                  ) : (
-                    <Button className="w-full" variant="outline" disabled>
-                      Indisponível
-                    </Button>
-                  )}
+      {loading ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-2xl bg-white/5" />)}
+        </div>
+      ) : operations.length === 0 ? (
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <CreditCard className="h-16 w-16 text-gold/30 mx-auto mb-4" />
+          <p className="text-gray-400 mb-2">Nenhuma carta disponivel</p>
+          <p className="text-gray-500 text-sm mb-6">
+            Cartas sao geradas quando suas operacoes sao aprovadas. Crie uma operacao pelo simulador para comecar.
+          </p>
+          <Link href="/membro/simulador">
+            <Button className="bg-gold text-black hover:bg-gold/90 rounded-xl">
+              Acessar Simulador
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {operations.map((op) => (
+            <div key={op.id} className="glass-card rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-emerald-400" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <h3 className="text-white font-medium capitalize">{op.type}</h3>
+                  <p className="text-gray-500 text-xs">
+                    {new Date(op.createdAt).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+              <div className="mb-4">
+                <p className="text-gray-500 text-xs mb-1">Valor da Carta</p>
+                <p className="text-2xl font-bold gold-gradient-text">
+                  R$ {op.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              {op.description && (
+                <p className="text-gray-500 text-sm mb-4">{op.description}</p>
+              )}
+              <div className="inline-flex items-center text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Aprovada
+              </div>
+            </div>
           ))}
         </div>
-      </div>
-    </div>
+      )}
+    </main>
   )
 }

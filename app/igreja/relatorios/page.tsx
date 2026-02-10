@@ -1,94 +1,92 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { FileText, Calendar, DollarSign } from 'lucide-react'
-import Link from 'next/link'
+import { FileText, Calendar, Download } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { exportCSV } from '@/lib/csv-export'
+
+interface Relatorio {
+  mes: string
+  volume: number
+  apoio: number
+  membros: number
+}
 
 export default function Relatorios() {
-  // Dados simulados - em produção viriam da API
-  const relatorios = [
-    {
-      mes: 'Janeiro 2024',
-      volume: 450000,
-      apoio: 9000,
-      membros: 12,
-    },
-    {
-      mes: 'Fevereiro 2024',
-      volume: 520000,
-      apoio: 10400,
-      membros: 15,
-    },
-    {
-      mes: 'Março 2024',
-      volume: 480000,
-      apoio: 9600,
-      membros: 14,
-    },
-  ]
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/church/reports')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setRelatorios(data.relatorios || []))
+      .catch(() => toast.error('Erro ao carregar relatorios'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleExport = () => {
+    if (relatorios.length === 0) { toast.error('Nao ha dados para exportar'); return }
+    exportCSV(
+      ['Mes', 'Volume (R$)', 'Apoio (R$)', 'Membros Ativos'],
+      relatorios.map(r => [r.mes, r.volume.toFixed(2), r.apoio.toFixed(2), String(r.membros)]),
+      `relatorio-igreja-${new Date().toISOString().slice(0, 10)}.csv`
+    )
+    toast.success('Relatorio exportado!')
+  }
 
   return (
-    <div className="min-h-screen premium-gradient py-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <Link href="/igreja/dashboard" className="inline-flex items-center text-gold hover:text-gold/80 mb-6">
-          ← Voltar
-        </Link>
+    <main className="container mx-auto px-4 py-8 relative z-10 max-w-5xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+            Relatorios <span className="gold-gradient-text">Mensais</span>
+          </h1>
+          <p className="text-gray-400">Historico de apoio institucional recebido</p>
+        </div>
+        <Button onClick={handleExport} className="bg-gold text-black hover:bg-gold/90 rounded-xl font-semibold">
+          <Download className="mr-2 h-4 w-4" />
+          Exportar CSV
+        </Button>
+      </div>
 
-        <Card className="bg-black/60 border-gold/50 mb-6">
-          <CardHeader>
-            <CardTitle className="text-3xl text-gold flex items-center">
-              <FileText className="mr-3 h-8 w-8" />
-              Relatórios Mensais
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Histórico de apoio institucional recebido
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
+      {loading ? (
+        <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl bg-white/5" />)}</div>
+      ) : relatorios.length === 0 ? (
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <FileText className="h-16 w-16 text-gold/30 mx-auto mb-4" />
+          <p className="text-gray-400 mb-2">Nenhum relatorio disponivel</p>
+          <p className="text-gray-500 text-sm">Os relatorios serao gerados conforme as operacoes dos membros.</p>
+        </div>
+      ) : (
         <div className="space-y-4">
           {relatorios.map((relatorio, index) => (
-            <Card key={index} className="bg-black/40 border-gold/30">
-              <CardHeader>
-                <CardTitle className="text-gold flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" />
-                  {relatorio.mes}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-6">
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">Volume Gerado</p>
-                    <p className="text-2xl font-bold text-white">
-                      R$ {relatorio.volume.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">Apoio Recebido</p>
-                    <p className="text-2xl font-bold text-gold">
-                      R$ {relatorio.apoio.toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">Membros Ativos</p>
-                    <p className="text-2xl font-bold text-white">{relatorio.membros}</p>
-                  </div>
+            <div key={index} className="glass-card rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-gold" />
                 </div>
-              </CardContent>
-            </Card>
+                <h3 className="text-lg font-semibold text-white">{relatorio.mes}</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-3 rounded-xl bg-white/[0.03]">
+                  <p className="text-gray-500 text-xs mb-1">Volume Gerado</p>
+                  <p className="text-xl font-bold text-white">R$ {relatorio.volume.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/[0.03]">
+                  <p className="text-gray-500 text-xs mb-1">Apoio Recebido</p>
+                  <p className="text-xl font-bold gold-gradient-text">R$ {relatorio.apoio.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/[0.03]">
+                  <p className="text-gray-500 text-xs mb-1">Membros Ativos</p>
+                  <p className="text-xl font-bold text-white">{relatorio.membros}</p>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-
-        <Card className="bg-black/60 border-gold/50 mt-6">
-          <CardContent className="pt-6">
-            <Button className="w-full bg-gold text-black hover:bg-gold/90" size="lg">
-              <DollarSign className="mr-2 h-4 w-4" />
-              Exportar Relatório Completo
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      )}
+    </main>
   )
 }

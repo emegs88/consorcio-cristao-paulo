@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FileText, ArrowLeft, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { FileText, Plus, CheckCircle, Clock, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -17,134 +20,199 @@ interface Operation {
   createdAt: string
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export default function Operacoes() {
   const [operations, setOperations] = useState<Operation[]>([])
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 })
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [newOp, setNewOp] = useState({ type: 'consortium', amount: '', description: '' })
 
-  useEffect(() => {
-    loadOperations()
-  }, [])
+  useEffect(() => { loadOperations(1) }, [])
 
-  const loadOperations = async () => {
+  const loadOperations = async (page: number) => {
+    setLoading(true)
     try {
-      const response = await fetch('/api/member/dashboard')
+      const response = await fetch(`/api/member/operations?page=${page}&limit=20`)
       if (response.ok) {
         const data = await response.json()
-        setOperations(data.recentOperations || [])
+        setOperations(data.operations || [])
+        setPagination(data.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 })
       }
-    } catch (error) {
-      toast.error('Erro ao carregar operações')
+    } catch {
+      toast.error('Erro ao carregar operacoes')
     } finally {
       setLoading(false)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircle className="h-5 w-5 text-green-400" />
-      case 'pending':
-        return <Clock className="h-5 w-5 text-yellow-400" />
-      default:
-        return <XCircle className="h-5 w-5 text-gray-400" />
+  const handleCreate = async () => {
+    const amount = parseFloat(newOp.amount)
+    if (!amount || amount <= 0) { toast.error('Valor invalido'); return }
+    setSubmitting(true)
+    try {
+      const response = await fetch('/api/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: newOp.type, amount, description: newOp.description || undefined }),
+      })
+      if (response.ok) {
+        toast.success('Operacao criada com sucesso!')
+        setDialogOpen(false)
+        setNewOp({ type: 'consortium', amount: '', description: '' })
+        loadOperations(1)
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Erro ao criar operacao')
+      }
+    } catch {
+      toast.error('Erro ao criar operacao')
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return 'Aprovado'
-      case 'pending':
-        return 'Pendente'
-      case 'rejected':
-        return 'Rejeitado'
-      default:
-        return status
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      approved: 'bg-emerald-500/10 text-emerald-400',
+      pending: 'bg-amber-500/10 text-amber-400',
+      rejected: 'bg-red-500/10 text-red-400',
     }
+    const labels: Record<string, string> = { approved: 'Aprovado', pending: 'Pendente', rejected: 'Rejeitado' }
+    return (
+      <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full ${styles[status as keyof typeof styles] || 'bg-gray-500/10 text-gray-400'}`}>
+        {labels[status] || status}
+      </span>
+    )
   }
 
   return (
-    <div className="min-h-screen premium-gradient py-12">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <Link href="/membro/dashboard" className="inline-flex items-center text-gold hover:text-gold/80 mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
-        </Link>
-
-        <Card className="bg-black/60 border-gold/50 mb-6">
-          <CardHeader>
-            <CardTitle className="text-3xl text-gold flex items-center">
-              <FileText className="mr-3 h-8 w-8" />
-              Minhas Operações
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Histórico completo de suas operações de consórcio
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-20 w-full bg-gold/20" />
-            ))}
-          </div>
-        ) : operations.length === 0 ? (
-          <Card className="bg-black/40 border-gold/30">
-            <CardContent className="pt-6 text-center">
-              <p className="text-gray-400 mb-4">Você ainda não possui operações</p>
-              <Link href="/membro/simulador">
-                <Button className="bg-gold text-black hover:bg-gold/90">
-                  Criar Primeira Operação
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {operations.map((op) => (
-              <Card key={op.id} className="bg-black/40 border-gold/30">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getStatusIcon(op.status)}
-                        <h3 className="text-white font-semibold text-lg capitalize">
-                          {op.type}
-                        </h3>
-                      </div>
-                      {op.description && (
-                        <p className="text-gray-400 text-sm mb-2">{op.description}</p>
-                      )}
-                      <p className="text-gray-400 text-sm">
-                        {new Date(op.createdAt).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gold mb-1">
-                        R$ {op.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        op.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                        op.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
-                        {getStatusText(op.status)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+    <main className="container mx-auto px-4 py-8 relative z-10 max-w-5xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+            Minhas <span className="gold-gradient-text">Operacoes</span>
+          </h1>
+          <p className="text-gray-400">Historico completo de suas operacoes de consorcio</p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)} className="bg-gold text-black hover:bg-gold/90 rounded-xl font-semibold">
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Operacao
+        </Button>
       </div>
-    </div>
+
+      {loading ? (
+        <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl bg-white/5" />)}</div>
+      ) : operations.length === 0 ? (
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <FileText className="h-16 w-16 text-gold/30 mx-auto mb-4" />
+          <p className="text-gray-400 mb-4">Voce ainda nao possui operacoes</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => setDialogOpen(true)} className="bg-gold text-black hover:bg-gold/90 rounded-xl">
+              <Plus className="mr-2 h-4 w-4" /> Nova Operacao
+            </Button>
+            <Link href="/membro/simulador">
+              <Button variant="outline" className="border-white/10 text-white rounded-xl">Simulador</Button>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {operations.map((op) => (
+              <div key={op.id} className="glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between md:items-center gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center shrink-0 mt-0.5">
+                    {op.status === 'approved' ? <CheckCircle className="h-5 w-5 text-emerald-400" /> :
+                     op.status === 'pending' ? <Clock className="h-5 w-5 text-amber-400" /> :
+                     <XCircle className="h-5 w-5 text-gray-400" />}
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium capitalize">{op.type}</h3>
+                    {op.description && <p className="text-gray-500 text-sm">{op.description}</p>}
+                    <p className="text-gray-500 text-sm">
+                      {new Date(op.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right md:text-right pl-13 md:pl-0">
+                  <p className="text-xl font-bold text-gold mb-1">
+                    R$ {op.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  {getStatusBadge(op.status)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-8">
+              <Button variant="outline" size="sm" className="border-white/10 text-white rounded-lg"
+                disabled={pagination.page <= 1} onClick={() => loadOperations(pagination.page - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-gray-400 text-sm">
+                Pagina {pagination.page} de {pagination.totalPages}
+              </span>
+              <Button variant="outline" size="sm" className="border-white/10 text-white rounded-lg"
+                disabled={pagination.page >= pagination.totalPages} onClick={() => loadOperations(pagination.page + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Create Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-[#0c0c1d] border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Nova Operacao</DialogTitle>
+            <DialogDescription className="text-gray-400">Crie uma nova operacao de consorcio</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Tipo</Label>
+              <Select value={newOp.type} onValueChange={(v) => setNewOp(prev => ({ ...prev, type: v }))}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0c0c1d] border-white/10">
+                  <SelectItem value="consortium">Consorcio</SelectItem>
+                  <SelectItem value="investment">Investimento</SelectItem>
+                  <SelectItem value="services">Servicos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Valor (R$)</Label>
+              <Input type="number" placeholder="100000" value={newOp.amount}
+                onChange={(e) => setNewOp(prev => ({ ...prev, amount: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Descricao (opcional)</Label>
+              <Input placeholder="Ex: Consorcio para imovel" value={newOp.description}
+                onChange={(e) => setNewOp(prev => ({ ...prev, description: e.target.value }))}
+                className="bg-white/5 border-white/10 text-white rounded-xl" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/10 text-white" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button className="bg-gold text-black hover:bg-gold/90" onClick={handleCreate} disabled={submitting}>
+              {submitting ? 'Criando...' : 'Criar Operacao'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
   )
 }

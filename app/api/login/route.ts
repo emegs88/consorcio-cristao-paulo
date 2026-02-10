@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyCredentials, createSession } from '@/lib/auth'
+import { verifyCredentials, signPayload } from '@/lib/auth'
 import { loginSchema } from '@/lib/validations'
 
 export async function POST(request: NextRequest) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Definir cookie de sessão
-    response.cookies.set('session', JSON.stringify(user), {
+    response.cookies.set('session', signPayload(JSON.stringify(user)), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

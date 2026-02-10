@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TrendingUp, Heart, FileText, Calculator, Clock, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { TrendingUp, Heart, FileText, Calculator, Clock, ArrowRight, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -28,224 +27,167 @@ export default function MembroDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-      const response = await fetch('/api/member/dashboard')
-      if (response.ok) {
-        const result = await response.json()
-        setData(result)
-      } else {
-        // Fallback para dados simulados se API falhar
-        setData({
-          name: 'Membro',
-          churchName: 'Igreja',
-          totalOperations: 0,
-          totalAmount: 0,
-          supportGenerated: 0,
-        })
-      }
-    } catch (error) {
-      toast.error('Erro ao carregar dados')
-      setData({
-        name: 'Membro',
-        churchName: 'Igreja',
-        totalOperations: 0,
-        totalAmount: 0,
-        supportGenerated: 0,
+    fetch('/api/member/dashboard')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(setData)
+      .catch(() => {
+        toast.error('Erro ao carregar dados')
+        setData({ name: 'Membro', churchName: 'Igreja', totalOperations: 0, totalAmount: 0, supportGenerated: 0 })
       })
-    } finally {
-      setLoading(false)
-    }
-  }
+      .finally(() => setLoading(false))
+  }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen premium-gradient">
-        <header className="border-b border-gold/20">
-          <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-            <Skeleton className="h-8 w-48 bg-gold/20" />
-            <Skeleton className="h-10 w-32 bg-gold/20" />
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-12">
-          <Skeleton className="h-12 w-64 mb-4 bg-gold/20" />
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-32 bg-gold/20" />
-            ))}
-          </div>
-        </main>
-      </div>
+      <main className="container mx-auto px-4 py-8">
+        <Skeleton className="h-12 w-64 mb-8 bg-white/5" />
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-36 rounded-2xl bg-white/5" />)}
+        </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen premium-gradient">
-      <header className="border-b border-gold/20">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div className="text-2xl font-bold text-gold">Prospere Aliança</div>
-          <nav className="flex gap-4">
-            <Link href="/membro/dashboard" className="text-white hover:text-gold">Dashboard</Link>
-            <Link href="/membro/simulador" className="text-white hover:text-gold">Simulador</Link>
-            <Link href="/membro/cartas" className="text-white hover:text-gold">Cartas</Link>
-            <Link href="/membro/operacoes" className="text-white hover:text-gold">Operações</Link>
-            <Link href="/membro/igreja" className="text-white hover:text-gold">Minha Igreja</Link>
-            <Button variant="outline" className="border-gold text-gold" onClick={async () => {
-              await fetch('/api/logout', { method: 'POST' })
-              window.location.href = '/login'
-            }}>Sair</Button>
-          </nav>
-        </div>
-      </header>
+    <main className="container mx-auto px-4 py-8 relative z-10">
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
+          Bem-vindo, <span className="gold-gradient-text">{data?.name}</span>
+        </h1>
+        <p className="text-gray-400">Seu planejamento patrimonial com proposito</p>
+      </div>
 
-      <main className="container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold text-white mb-2">Bem-vindo, {data?.name}</h1>
-        <p className="text-gray-300 mb-8">Seu planejamento patrimonial com propósito</p>
-
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center">
-                <FileText className="mr-2 h-5 w-5" />
-                Operações
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{data?.totalOperations}</div>
-              <p className="text-gray-400 text-sm">Total de operações</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center">
-                <TrendingUp className="mr-2 h-5 w-5" />
-                Volume Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                R$ {data?.totalAmount.toLocaleString('pt-BR')}
-              </div>
-              <p className="text-gray-400 text-sm">Valor acumulado</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center">
-                <Heart className="mr-2 h-5 w-5" />
-                Apoio Gerado
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                R$ {data?.supportGenerated.toLocaleString('pt-BR')}
-              </div>
-              <p className="text-gray-400 text-sm">Para sua igreja</p>
-            </CardContent>
-          </Card>
+      {/* Stats */}
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="stat-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-gold" />
+            </div>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Total</span>
+          </div>
+          <div className="text-3xl font-bold text-white mb-1">{data?.totalOperations}</div>
+          <p className="text-gray-400 text-sm">Operacoes realizadas</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold">Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Link href="/membro/simulador">
-                <Button className="w-full bg-gold text-black hover:bg-gold/90" size="lg">
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Simulador de Consórcio
-                </Button>
-              </Link>
-              <Link href="/membro/cartas">
-                <Button className="w-full" variant="outline" size="lg">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Cartas Disponíveis
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <div className="stat-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-gold" />
+            </div>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Volume</span>
+          </div>
+          <div className="text-3xl font-bold text-white mb-1">
+            R$ {data?.totalAmount.toLocaleString('pt-BR')}
+          </div>
+          <p className="text-gray-400 text-sm">Valor acumulado</p>
+        </div>
 
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold">Apoio à Sua Igreja</CardTitle>
-              <CardDescription className="text-gray-300">
-                {data?.churchName}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+        <div className="stat-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+              <Heart className="h-5 w-5 text-gold" />
+            </div>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Apoio</span>
+          </div>
+          <div className="text-3xl font-bold gold-gradient-text mb-1">
+            R$ {data?.supportGenerated.toLocaleString('pt-BR')}
+          </div>
+          <p className="text-gray-400 text-sm">Gerado para sua igreja</p>
+        </div>
+      </div>
+
+      {/* Quick Actions + Church Support */}
+      <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Acoes Rapidas</h3>
+          <div className="space-y-3">
+            <Link href="/membro/simulador" className="block">
+              <Button className="w-full bg-gold text-black hover:bg-gold/90 rounded-xl h-12 font-semibold" size="lg">
+                <Calculator className="mr-2 h-4 w-4" />
+                Simulador de Consorcio
+              </Button>
+            </Link>
+            <Link href="/membro/cartas" className="block">
+              <Button className="w-full rounded-xl h-12 border-white/10 text-white hover:bg-white/5" variant="outline" size="lg">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Cartas Disponiveis
+              </Button>
+            </Link>
+            <Link href="/membro/operacoes" className="block">
+              <Button className="w-full rounded-xl h-12 border-white/10 text-white hover:bg-white/5" variant="outline" size="lg">
+                <FileText className="mr-2 h-4 w-4" />
+                Minhas Operacoes
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Apoio à Sua Igreja</h3>
+            <span className="text-xs text-gold bg-gold/10 px-3 py-1 rounded-full">{data?.churchName}</span>
+          </div>
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-1">Total gerado</p>
+            <p className="text-3xl font-bold gold-gradient-text">
+              R$ {data?.supportGenerated.toLocaleString('pt-BR')}
+            </p>
+          </div>
+          <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+            Parte das suas operacoes e destinada à sua igreja como forma de apoio voluntario ao ministerio.
+          </p>
+          <Link href="/membro/igreja">
+            <Button variant="outline" className="w-full rounded-xl border-gold/20 text-gold hover:bg-gold/5">
+              Ver Detalhes
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Recent Operations */}
+      {data?.recentOperations && data.recentOperations.length > 0 && (
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-gold" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Operacoes Recentes</h3>
+            </div>
+            <Link href="/membro/operacoes" className="text-sm text-gold hover:text-gold/80 flex items-center gap-1">
+              Ver todas <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {data.recentOperations.map((op) => (
+              <div key={op.id} className="flex justify-between items-center p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-colors">
                 <div>
-                  <p className="text-sm text-gray-400">Total gerado</p>
-                  <p className="text-2xl font-bold text-gold">
-                    R$ {data?.supportGenerated.toLocaleString('pt-BR')}
+                  <p className="text-white font-medium">{op.type}</p>
+                  <p className="text-gray-500 text-sm">
+                    {new Date(op.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
-                <p className="text-sm text-gray-300">
-                  Parte das suas operações é destinada à sua igreja como forma de apoio voluntário ao ministério.
-                </p>
-                <Link href="/membro/igreja">
-                  <Button variant="outline" className="w-full border-gold text-gold">
-                    Ver Detalhes
-                  </Button>
-                </Link>
+                <div className="text-right">
+                  <p className="text-gold font-semibold">
+                    R$ {op.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full ${
+                    op.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                    op.status === 'pending' ? 'bg-amber-500/10 text-amber-400' :
+                    'bg-gray-500/10 text-gray-400'
+                  }`}>
+                    {op.status === 'approved' ? 'Aprovado' :
+                     op.status === 'pending' ? 'Pendente' :
+                     op.status}
+                  </span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
         </div>
-
-        {data?.recentOperations && data.recentOperations.length > 0 && (
-          <Card className="bg-black/40 border-gold/30">
-            <CardHeader>
-              <CardTitle className="text-gold flex items-center justify-between">
-                <span className="flex items-center">
-                  <Clock className="mr-2 h-5 w-5" />
-                  Operações Recentes
-                </span>
-                <Link href="/membro/operacoes" className="text-sm text-gold hover:underline flex items-center">
-                  Ver todas <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {data.recentOperations.map((op) => (
-                  <div
-                    key={op.id}
-                    className="p-4 bg-black/30 rounded-lg border border-gold/20 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-white font-semibold">{op.type}</p>
-                      <p className="text-gray-400 text-sm">
-                        {new Date(op.createdAt).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-gold font-bold">
-                        R$ {op.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className={`text-xs ${
-                        op.status === 'approved' ? 'text-green-400' :
-                        op.status === 'pending' ? 'text-yellow-400' :
-                        'text-gray-400'
-                      }`}>
-                        {op.status === 'approved' ? 'Aprovado' :
-                         op.status === 'pending' ? 'Pendente' :
-                         op.status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </main>
-    </div>
+      )}
+    </main>
   )
 }

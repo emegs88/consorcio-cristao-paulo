@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { calculateInstitutionalSupport } from '@/lib/institutional-support'
+import { requireAuth } from '@/lib/api-auth'
+import { operationSchema } from '@/lib/validations'
 
 /**
  * Cria uma nova operação de consórcio
@@ -8,16 +10,31 @@ import { calculateInstitutionalSupport } from '@/lib/institutional-support'
  */
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
-    const { memberId, type, amount, description } = data
+    const auth = await requireAuth(['MEMBER'])
+    if (!auth.success) return auth.response
 
-    // Criar operação
+    const data = await request.json()
+    const validated = operationSchema.parse(data)
+
+    // Buscar membro do usuário autenticado
+    const member = await prisma.member.findUnique({
+      where: { userId: auth.session.id },
+    })
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Membro não encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Criar operação usando o memberId da sessão (não do body)
     const operation = await prisma.operation.create({
       data: {
-        memberId,
-        type: type || 'consortium',
-        amount: parseFloat(amount),
-        description: description || null,
+        memberId: member.id,
+        type: validated.type,
+        amount: validated.amount,
+        description: validated.description || null,
         status: 'pending',
       },
       include: {
@@ -34,12 +51,18 @@ export async function POST(request: NextRequest) {
       await calculateInstitutionalSupport(
         operation.id,
         operation.amount,
-        0.02 // 2% padrão - pode vir de variável de ambiente
+        0.02 // 2% padrão
       )
     }
 
     return NextResponse.json({ success: true, operation })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Dados inválidos', details: error.errors },
+        { status: 400 }
+      )
+    }
     console.error('Erro ao criar operação:', error)
     return NextResponse.json(
       { error: 'Erro ao processar operação' },
@@ -49,35 +72,50 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Lista operações de um membro
+ * Lista operações do membro autenticado
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const memberId = searchParams.get('memberId')
+    const auth = await requireAuth(['MEMBER'])
+    if (!auth.success) return auth.response
 
-    if (!memberId) {
+    const member = await prisma.member.findUnique({
+      where: { userId: auth.session.id },
+    })
+
+    if (!member) {
       return NextResponse.json(
-        { error: 'memberId é obrigatório' },
-        { status: 400 }
+        { error: 'Membro não encontrado' },
+        { status: 404 }
       )
     }
 
-    const operations = await prisma.operation.findMany({
-      where: { memberId },
-      include: {
-        institutionalSupport: {
-          include: {
-            church: true,
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+    const skip = (page - 1) * limit
+
+    const [operations, total] = await Promise.all([
+      prisma.operation.findMany({
+        where: { memberId: member.id },
+        include: {
+          institutionalSupport: {
+            include: {
+              church: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.operation.count({ where: { memberId: member.id } }),
+    ])
 
-    return NextResponse.json({ operations })
+    return NextResponse.json({
+      operations,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Erro ao buscar operações:', error)
     return NextResponse.json(
