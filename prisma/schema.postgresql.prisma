@@ -1,0 +1,119 @@
+// Schema para PostgreSQL (produção)
+// Renomeie este arquivo para schema.prisma ao migrar para PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  role          String   // "MEMBER" | "CHURCH" | "ADMIN"
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Se for membro
+  member        Member?
+  
+  // Se for igreja
+  church        Church?
+  
+  @@map("users")
+}
+
+model Member {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  churchId          String?
+  churchName        String?
+  city              String
+  whatsapp           String
+  referral          String?
+  financialGoal     String?
+  linkChurch        Boolean  @default(true)
+  approvalStatus    String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  church            Church?  @relation(fields: [churchId], references: [id])
+  
+  operations        Operation[]
+  
+  @@map("members")
+}
+
+model Convention {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  acronym           String   @unique
+  description       String?
+  website           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  churches          Church[]
+  
+  @@map("conventions")
+}
+
+model Church {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  name              String
+  pastorName        String
+  cnpj              String?  @unique
+  city              String
+  memberCount       Int?
+  bankAccount       String?
+  conventionId      String?  // Vinculação à convenção (ex: CBESP)
+  approvalStatus    String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  convention        Convention? @relation(fields: [conventionId], references: [id])
+  members           Member[]
+  institutionalSupport InstitutionalSupport[]
+  
+  @@map("churches")
+}
+
+model Operation {
+  id                String   @id @default(cuid())
+  memberId          String
+  type              String   // "consortium", "investment", etc
+  amount            Float
+  description       String?
+  status            String   @default("pending")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  member            Member   @relation(fields: [memberId], references: [id])
+  institutionalSupport InstitutionalSupport?
+  
+  @@map("operations")
+}
+
+model InstitutionalSupport {
+  id                String   @id @default(cuid())
+  churchId          String
+  operationId       String   @unique
+  amount            Float
+  percentage        Float    // Percentual aplicado
+  status            String   @default("pending")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  church            Church   @relation(fields: [churchId], references: [id])
+  operation         Operation @relation(fields: [operationId], references: [id])
+  
+  @@map("institutional_support")
+}
