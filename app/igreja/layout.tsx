@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileText, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
@@ -23,8 +24,8 @@ export default function IgrejaLayout({ children }: { children: React.ReactNode }
     <div className="min-h-screen premium-gradient">
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0c0c1d]/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/igreja/dashboard" className="text-xl font-bold gold-gradient-text">
-            Prospere Alianca
+          <Link href="/igreja/dashboard" className="flex items-center">
+            <Image src="/logo.svg" alt="Consórcios Prospere" width={150} height={38} />
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { LayoutDashboard, Building2, Users, DollarSign, LogOut, Menu, X } from 'lucide-react'
@@ -26,8 +27,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen premium-gradient">
       <header className="sticky top-0 z-50 border-b border-white/5 bg-[#0c0c1d]/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/admin/dashboard" className="text-xl font-bold gold-gradient-text">
-            Prospere Alianca <span className="text-xs text-gray-500 ml-1">Admin</span>
+          <Link href="/admin/dashboard" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Consórcios Prospere" width={150} height={38} />
+            <span className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">Admin</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">

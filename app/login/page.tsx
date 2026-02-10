@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
@@ -60,11 +61,9 @@ export default function Login() {
 
         <div className="glass-card rounded-3xl p-8 md:p-10 gold-glow">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gold/10 flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-7 w-7 text-gold" />
-            </div>
+            <Image src="/logo.svg" alt="Consórcios Prospere" width={200} height={50} className="mx-auto mb-6" />
             <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>
-            <p className="text-gray-400">Acesse sua conta Prospere Alianca</p>
+            <p className="text-gray-400">Acesse sua conta</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

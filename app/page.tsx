@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Heart, Shield, TrendingUp, Calculator, Church, Home as HomeIcon, Speaker, Snowflake, ArrowRight, Star, ChevronRight } from 'lucide-react'
@@ -9,8 +10,8 @@ export default function Home() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0c0c1d]/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold gold-gradient-text tracking-tight">
-            Prospere Alianca
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.svg" alt="Consórcios Prospere" width={180} height={45} priority />
           </Link>
           <nav className="hidden md:flex items-center gap-2">
             <Link href="#como-funciona" className="nav-link">Como Funciona</Link>
@@ -225,7 +226,7 @@ export default function Home() {
       <footer className="border-t border-white/5 py-10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="gold-gradient-text font-bold text-lg">Prospere Alianca</div>
+            <Image src="/logo.svg" alt="Consórcios Prospere" width={140} height={35} />
             <p className="text-gray-500 text-sm">Planejamento Patrimonial com Proposito</p>
             <div className="flex gap-6 text-sm">
               <Link href="/cadastro/igreja" className="text-gray-400 hover:text-gold transition">
